@@ -2,8 +2,9 @@ import SwiftUI
 import UIKit
 import SDWebImageSwiftUI
 
-struct CarouselView: View {
+struct EnhancedCarouselView: View {
     let items: [CarouselItem]
+    @Binding var scrollOffset: CGFloat
     @State private var currentIndex = 0
     @State private var timer: Timer?
     @State private var isUserInteracting = false
@@ -13,14 +14,30 @@ struct CarouselView: View {
     private let restartDelay: TimeInterval = 5.0
     
     var body: some View {
-        TabView(selection: $currentIndex) {
-            ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
-                CarouselItemView(item: item)
-                    .tag(index)
+        GeometryReader { geometry in
+            TabView(selection: $currentIndex) {
+                ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
+                    EnhancedCarouselItemView(item: item, geometry: geometry)
+                        .tag(index)
+                }
             }
+            .tabViewStyle(PageTabViewStyle(indexDisplayMode: .always))
+            .frame(height: 280) // Increased height for hero prominence
+            .background(
+                LinearGradient(
+                    gradient: Gradient(colors: [
+                        Color.black.opacity(0.1),
+                        Color.clear
+                    ]),
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+            )
+            .cornerRadius(16)
+            .shadow(color: .black.opacity(0.15), radius: 10, x: 0, y: 5)
+            .padding(.horizontal, AppConstants.Layout.horizontalPadding)
         }
-        .tabViewStyle(PageTabViewStyle(indexDisplayMode: .always))
-        .frame(height: 250)
+        .frame(height: 280)
         .onAppear {
             setupPageControl()
             startAutoScroll()
@@ -60,14 +77,11 @@ struct CarouselView: View {
     }
     
     private func handleUserInteraction() {
-        // Stop auto scroll when user interacts
         isUserInteracting = true
         stopAutoScroll()
         
-        // Cancel any existing restart timer
         restartTimer?.invalidate()
         
-        // Start timer to resume auto scroll after delay
         restartTimer = Timer.scheduledTimer(withTimeInterval: restartDelay, repeats: false) { _ in
             isUserInteracting = false
             startAutoScroll()
@@ -82,232 +96,151 @@ struct CarouselView: View {
     }
 }
 
-struct CarouselItemView: View {
+struct EnhancedCarouselItemView: View {
     let item: CarouselItem
+    let geometry: GeometryProxy
+    @State private var parallaxOffset: CGFloat = 0
     
     var body: some View {
-        GeometryReader { geometry in
-            ZStack {
-                // Background Image - Using cleaned URLs
-                WebImage(url: createValidURL(from: item.imageUrl)) { image in
-                    image
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                        .frame(width: geometry.size.width, height: geometry.size.height)
-                        .clipped()
-                } placeholder: {
-                    Rectangle()
-                        .fill(Color.gray.opacity(0.2))
-                        .overlay(
-                            VStack {
-                                ProgressView()
-                                    .progressViewStyle(CircularProgressViewStyle(tint: AppConstants.Colors.primary))
-                                Text("Loading...")
-                                    .font(.caption)
-                                    .foregroundColor(AppConstants.Colors.textSecondary)
-                            }
-                        )
-                }
-                .onSuccess { image, data, cacheType in
-                    print("✅ SDWebImage carousel loaded: \(item.title)")
-                    print("   Cache type: \(cacheType)")
-                }
-                .onFailure { error in
-                    print("❌ SDWebImage carousel failed: \(item.title)")
-                    print("   URL: \(item.imageUrl)")
-                    print("   Error: \(error.localizedDescription)")
-                    
-                    // Test the cleaned URL
-                    if let cleanedUrl = createValidURL(from: item.imageUrl) {
-                        testImageURL(cleanedUrl.absoluteString)
-                    }
-                }
-                .onAppear {
-                    print("⏳ SDWebImage loading carousel: \(item.title)")
-                }
+        ZStack {
+            // Background Image with Parallax Effect
+            WebImage(url: createValidURL(from: item.imageUrl)) { image in
+                image
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .frame(width: geometry.size.width, height: 280)
+                    .offset(y: parallaxOffset * 0.3) // Parallax effect
+                    .clipped()
+            } placeholder: {
+                SkeletonShimmerView()
+                    .frame(width: geometry.size.width, height: 280)
+            }
+            .onSuccess { image, data, cacheType in
+                print("✅ Enhanced carousel loaded: \(item.title)")
+            }
+            .onFailure { error in
+                print("❌ Enhanced carousel failed: \(item.title)")
+            }
+            
+            // Enhanced Gradient Overlay
+            LinearGradient(
+                gradient: Gradient(stops: [
+                    .init(color: Color.clear, location: 0.0),
+                    .init(color: Color.clear, location: 0.3),
+                    .init(color: Color.black.opacity(0.2), location: 0.6),
+                    .init(color: Color.black.opacity(0.7), location: 1.0)
+                ]),
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            
+            // Enhanced Content Overlay
+            VStack {
+                Spacer()
                 
-                // Gradient Overlay
-                LinearGradient(
-                    gradient: Gradient(colors: [
-                        .clear,
-                        .clear,
-                        .black.opacity(0.3),
-                        .black.opacity(0.7)
-                    ]),
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                
-                // Content Overlay - Fixed positioning
-                VStack {
-                    Spacer()
-                    
-                    HStack {
-                        VStack(alignment: .leading, spacing: 8) {
-                            // Title
-                            Text(item.title)
-                                .font(.custom(AppConstants.Fonts.inter, size: 14))
-                                .fontWeight(.medium)
-                                .foregroundColor(.white.opacity(0.9))
-                                .fixedSize(horizontal: false, vertical: true)
-                            
-                            // Subtitle
-                            Text(item.subtitle)
-                                .font(.custom(AppConstants.Fonts.inter, size: 24))
-                                .fontWeight(.bold)
-                                .foregroundColor(.white)
-                                .fixedSize(horizontal: false, vertical: true)
-                                .lineLimit(2)
-                            
-                            // Button
-                            Button(action: {
-                                handleCarouselAction(item: item)
-                            }) {
-                                HStack(spacing: 8) {
-                                    Text(item.buttonText)
-                                        .font(.custom(AppConstants.Fonts.inter, size: 14))
-                                        .fontWeight(.medium)
-                                        .foregroundColor(.black)
-                                    
-                                    Image(systemName: "arrow.right")
-                                        .font(.system(size: 12, weight: .medium))
-                                        .foregroundColor(.black)
-                                }
-                                .padding(.horizontal, 20)
-                                .padding(.vertical, 10)
-                                .background(
-                                    Capsule()
-                                        .fill(Color.white)
-                                        .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
-                                )
-                            }
-                            .padding(.top, 4)
-                        }
+                HStack {
+                    VStack(alignment: .leading, spacing: 12) {
+                        // Category/Title
+                        Text(item.title)
+                            .font(.custom(AppConstants.Fonts.inter, size: 16))
+                            .fontWeight(.medium)
+                            .foregroundColor(.white.opacity(0.9))
+                            .shadow(color: .black.opacity(0.5), radius: 2, x: 1, y: 1)
                         
-                        Spacer()
+                        // Main Subtitle with gradient text
+                        Text(item.subtitle)
+                            .font(.custom(AppConstants.Fonts.inter, size: 28))
+                            .fontWeight(.bold)
+                            .foregroundStyle(
+                                LinearGradient(
+                                    gradient: Gradient(colors: [
+                                        .white,
+                                        AppConstants.Colors.primary.opacity(0.9)
+                                    ]),
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
+                            .shadow(color: .black.opacity(0.8), radius: 4, x: 2, y: 2)
+                            .lineLimit(2)
+                        
+                        // Enhanced CTA Button
+                        Button(action: {
+                            handleCarouselAction(item: item)
+                        }) {
+                            HStack(spacing: 10) {
+                                Text(item.buttonText)
+                                    .font(.custom(AppConstants.Fonts.inter, size: 15))
+                                    .fontWeight(.semibold)
+                                    .foregroundColor(.black)
+                                
+                                Image(systemName: "arrow.right")
+                                    .font(.system(size: 13, weight: .semibold))
+                                    .foregroundColor(.black)
+                            }
+                            .padding(.horizontal, 24)
+                            .padding(.vertical, 12)
+                            .background(
+                                LinearGradient(
+                                    gradient: Gradient(colors: [
+                                        .white,
+                                        AppConstants.Colors.primary.opacity(0.1)
+                                    ]),
+                                    startPoint: .top,
+                                    endPoint: .bottom
+                                )
+                            )
+                            .clipShape(Capsule())
+                            .shadow(color: .black.opacity(0.3), radius: 8, x: 0, y: 4)
+                            .overlay(
+                                Capsule()
+                                    .stroke(
+                                        LinearGradient(
+                                            gradient: Gradient(colors: [
+                                                AppConstants.Colors.primary.opacity(0.3),
+                                                Color.clear
+                                            ]),
+                                            startPoint: .top,
+                                            endPoint: .bottom
+                                        ),
+                                        lineWidth: 1
+                                    )
+                            )
+                        }
+                        .scaleEffect(1.0)
+                        .padding(.top, 8)
                     }
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, 20)
+                    
+                    Spacer()
                 }
+                .padding(.horizontal, 24)
+                .padding(.bottom, 32)
             }
         }
-        .frame(height: 250)
+        .frame(height: 280)
+        .cornerRadius(16)
         .clipped()
     }
     
     private func handleCarouselAction(item: CarouselItem) {
-        // Handle carousel button tap
-        print("Carousel action: \(item.actionType) -> \(item.actionTarget)")
-        // TODO: Implement navigation based on actionType and actionTarget
+        print("Enhanced carousel action: \(item.actionType) -> \(item.actionTarget)")
         
-        // Add haptic feedback
+        // Haptic feedback
         let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
         impactFeedback.impactOccurred()
     }
     
     private func createValidURL(from urlString: String) -> URL? {
-        // Clean the URL string
         let cleanedString = urlString
             .trimmingCharacters(in: .whitespacesAndNewlines)
             .replacingOccurrences(of: "%0A", with: "")
             .replacingOccurrences(of: "\n", with: "")
             .replacingOccurrences(of: "\r", with: "")
         
-        print("🧹 Original URL: \(urlString)")
-        print("🧹 Cleaned URL: \(cleanedString)")
-        
-        // Validate it's a proper Firebase Storage URL
         if cleanedString.contains("firebasestorage.googleapis.com") &&
            cleanedString.contains("?alt=media") {
             return URL(string: cleanedString)
-        } else {
-            print("❌ Invalid Firebase Storage URL format")
-            return nil
         }
-    }
-    
-    private func testImageURL(_ urlString: String) {
-        guard let url = URL(string: urlString) else {
-            print("❌ Invalid URL format: \(urlString)")
-            return
-        }
-        
-        print("🔍 Testing URL accessibility: \(url)")
-        
-        // Test the URL accessibility with a full GET request
-        URLSession.shared.dataTask(with: url) { data, response, error in
-            DispatchQueue.main.async {
-                if let error = error {
-                    print("❌ URL test failed: \(error.localizedDescription)")
-                } else if let httpResponse = response as? HTTPURLResponse {
-                    print("🔍 URL status code: \(httpResponse.statusCode)")
-                    print("🔍 Response headers: \(httpResponse.allHeaderFields)")
-                    
-                    if httpResponse.statusCode == 200 {
-                        if let data = data {
-                            print("✅ URL is accessible, downloaded \(data.count) bytes")
-                            
-                            // Try to create UIImage from data
-                            if let _ = UIImage(data: data) {
-                                print("✅ Data is valid image format")
-                            } else {
-                                print("❌ Data is not a valid image format")
-                            }
-                        }
-                    } else {
-                        print("❌ URL returned error status: \(httpResponse.statusCode)")
-                    }
-                } else {
-                    print("❌ No response received")
-                }
-            }
-        }.resume()
-        
-        // Also test with a different approach - URLRequest with custom headers
-        var request = URLRequest(url: url)
-        request.setValue("*/*", forHTTPHeaderField: "Accept")
-        request.setValue("Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15", forHTTPHeaderField: "User-Agent")
-        
-        URLSession.shared.dataTask(with: request) { data, response, error in
-            DispatchQueue.main.async {
-                if let error = error {
-                    print("❌ Custom request failed: \(error.localizedDescription)")
-                } else if let httpResponse = response as? HTTPURLResponse {
-                    print("🔍 Custom request status: \(httpResponse.statusCode)")
-                    if httpResponse.statusCode == 200 && data != nil {
-                        print("✅ Custom request successful - AsyncImage might have a different issue")
-                    }
-                }
-            }
-        }.resume()
-    }
-}
-
-// Preview for SwiftUI Canvas
-struct CarouselView_Previews: PreviewProvider {
-    static var previews: some View {
-        let sampleItems = [
-            CarouselItem(
-                id: "1",
-                imageUrl: "https://example.com/image1.jpg",
-                title: "New Collection",
-                subtitle: "Timeless Elegance",
-                buttonText: "Discover",
-                actionTarget: "collection_1",
-                actionType: "collection"
-            ),
-            CarouselItem(
-                id: "2",
-                imageUrl: "https://example.com/image2.jpg",
-                title: "Featured",
-                subtitle: "Gold Jewelry",
-                buttonText: "Shop Now",
-                actionTarget: "category_gold",
-                actionType: "category"
-            )
-        ]
-        
-        CarouselView(items: sampleItems)
-            .previewLayout(.sizeThatFits)
+        return nil
     }
 }

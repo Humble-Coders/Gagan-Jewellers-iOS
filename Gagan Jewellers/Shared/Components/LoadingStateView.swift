@@ -30,7 +30,16 @@ struct ErrorStateView: View {
         VStack(spacing: 16) {
             Image(systemName: "exclamationmark.triangle")
                 .font(.system(size: 48))
-                .foregroundColor(AppConstants.Colors.textSecondary)
+                .foregroundStyle(
+                    LinearGradient(
+                        gradient: Gradient(colors: [
+                            Color.red.opacity(0.8),
+                            Color.orange.opacity(0.6)
+                        ]),
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
             
             Text("Something went wrong")
                 .font(.custom(AppConstants.Fonts.inter, size: 18))
@@ -50,12 +59,31 @@ struct ErrorStateView: View {
                     .foregroundColor(.white)
                     .padding(.horizontal, 32)
                     .padding(.vertical, 12)
-                    .background(AppConstants.Colors.primary)
+                    .background(
+                        LinearGradient(
+                            gradient: Gradient(colors: [
+                                AppConstants.Colors.primary,
+                                AppConstants.Colors.primary.opacity(0.8)
+                            ]),
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
                     .cornerRadius(AppConstants.Layout.cornerRadius)
+                    .shadow(color: AppConstants.Colors.primary.opacity(0.3), radius: 8, x: 0, y: 4)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(AppConstants.Colors.background)
+        .background(
+            LinearGradient(
+                gradient: Gradient(colors: [
+                    AppConstants.Colors.background,
+                    AppConstants.Colors.background.opacity(0.95)
+                ]),
+                startPoint: .top,
+                endPoint: .bottom
+            )
+        )
     }
 }
 
@@ -76,7 +104,16 @@ struct EmptyStateView: View {
         VStack(spacing: 16) {
             Image(systemName: "tray")
                 .font(.system(size: 48))
-                .foregroundColor(AppConstants.Colors.textSecondary)
+                .foregroundStyle(
+                    LinearGradient(
+                        gradient: Gradient(colors: [
+                            AppConstants.Colors.textSecondary,
+                            AppConstants.Colors.textSecondary.opacity(0.6)
+                        ]),
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
             
             Text(title)
                 .font(.custom(AppConstants.Fonts.inter, size: 18))
@@ -97,12 +134,31 @@ struct EmptyStateView: View {
                         .foregroundColor(.white)
                         .padding(.horizontal, 32)
                         .padding(.vertical, 12)
-                        .background(AppConstants.Colors.primary)
+                        .background(
+                            LinearGradient(
+                                gradient: Gradient(colors: [
+                                    AppConstants.Colors.primary,
+                                    AppConstants.Colors.primary.opacity(0.8)
+                                ]),
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                        )
                         .cornerRadius(AppConstants.Layout.cornerRadius)
+                        .shadow(color: AppConstants.Colors.primary.opacity(0.3), radius: 8, x: 0, y: 4)
                 }
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(AppConstants.Colors.background)
+        .background(
+            LinearGradient(
+                gradient: Gradient(colors: [
+                    AppConstants.Colors.background,
+                    AppConstants.Colors.background.opacity(0.95)
+                ]),
+                startPoint: .top,
+                endPoint: .bottom
+            )
+        )
     }
 }

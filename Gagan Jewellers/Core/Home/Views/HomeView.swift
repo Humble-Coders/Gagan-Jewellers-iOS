@@ -5,6 +5,7 @@ struct HomeView: View {
     @State private var isSearching = false
     @State private var searchText = ""
     @State private var showingSidebar = false
+    @State private var carouselScrollOffset: CGFloat = 0
     
     var body: some View {
         NavigationView {
@@ -16,7 +17,7 @@ struct HomeView: View {
                     
                     // Content
                     if viewModel.isLoading {
-                        LoadingStateView()
+                        SkeletonLoadingView()
                     } else if let error = viewModel.error {
                         ErrorStateView(message: error) {
                             viewModel.loadData()
@@ -32,12 +33,7 @@ struct HomeView: View {
                 }
             }
         }
-        #if os(iOS)
         .navigationBarHidden(true)
-        #else
-        .navigationTitle("")
-        .toolbar(.hidden)
-        #endif
         .onAppear {
             if viewModel.carouselItems.isEmpty {
                 viewModel.loadData()
@@ -55,14 +51,23 @@ struct HomeView: View {
         }
         .padding(.horizontal, AppConstants.Layout.horizontalPadding)
         .padding(.vertical, 12)
-        .background(AppConstants.Colors.background)
-        .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 2)
+        .background(
+            LinearGradient(
+                gradient: Gradient(colors: [
+                    AppConstants.Colors.background,
+                    AppConstants.Colors.background.opacity(0.95)
+                ]),
+                startPoint: .top,
+                endPoint: .bottom
+            )
+        )
+        .shadow(color: .black.opacity(0.08), radius: 8, x: 0, y: 2)
     }
     
     private var regularTopBar: some View {
         HStack {
             Button(action: {
-                withAnimation(.easeInOut(duration: 0.3)) {
+                withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
                     showingSidebar.toggle()
                 }
             }) {
@@ -70,14 +75,23 @@ struct HomeView: View {
                     .font(.system(size: 18))
                     .foregroundColor(AppConstants.Colors.text)
             }
-            .frame(width: 44, height: 44) // Fixed frame for consistent spacing
+            .frame(width: 44, height: 44)
             
             Spacer()
             
             Text("Gagan Jewellers")
                 .font(.custom(AppConstants.Fonts.inter, size: 20))
                 .fontWeight(.semibold)
-                .foregroundColor(AppConstants.Colors.primary)
+                .foregroundStyle(
+                    LinearGradient(
+                        gradient: Gradient(colors: [
+                            AppConstants.Colors.primary,
+                            AppConstants.Colors.primary.opacity(0.8)
+                        ]),
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                )
             
             Spacer()
             
@@ -100,7 +114,7 @@ struct HomeView: View {
                         .foregroundColor(AppConstants.Colors.text)
                 }
             }
-            .frame(width: 88, height: 44) // Fixed frame to balance the hamburger menu
+            .frame(width: 88, height: 44)
         }
     }
     
@@ -123,41 +137,120 @@ struct HomeView: View {
         }
     }
     
-
-    
     private var contentView: some View {
-        ScrollView {
-            LazyVStack(spacing: 24) {
-                // Carousel - Edge to edge
-                if !viewModel.carouselItems.isEmpty {
-                    CarouselView(items: viewModel.carouselItems)
+        GeometryReader { geometry in
+            ScrollView {
+                VStack(spacing: 0) { // Changed from LazyVStack to regular VStack
+                    // Hero Carousel Section
+                    if !viewModel.carouselItems.isEmpty {
+                        VStack(spacing: 0) {
+                            EnhancedCarouselView(
+                                items: viewModel.carouselItems,
+                                scrollOffset: $carouselScrollOffset
+                            )
+                            
+                            // Elegant section divider
+                            sectionDivider
+                        }
+                    }
+                    
+                    // Categories Section
+                    if !viewModel.categories.isEmpty {
+                        VStack(spacing: 24) {
+                            sectionHeader(title: "Explore by Category", subtitle: "Discover our finest collections")
+                            
+                            CategoryRowView(categories: viewModel.categories)
+                        }
+                        .padding(.vertical, 24)
+                        
+                        sectionDivider
+                    }
+                    
+                    // Featured Collection Section
+                    if !viewModel.featuredProducts.isEmpty {
+                        VStack(spacing: 24) {
+                            sectionHeader(title: "Featured Collection", subtitle: "Handpicked for you")
+                            
+                            // Allow internal animations but disable layout animations
+                            EnhancedFeaturedCollectionView(products: viewModel.featuredProducts)
+                                .animation(.none, value: viewModel.featuredProducts.count) // Only disable layout changes
+                        }
+                        .animation(.none, value: viewModel.featuredProducts.count) // Disable VStack layout animations
+                        .padding(.vertical, 24)
+                        
+                        sectionDivider
+                    }
+                    
+                    // Collections Section
+                    if !viewModel.themedCollections.isEmpty {
+                        VStack(spacing: 24) {
+                            sectionHeader(title: "Our Collections", subtitle: "Curated themes and styles")
+                            
+                            CollectionsRowView(collections: viewModel.themedCollections)
+                        }
+                        .padding(.vertical, 24)
+                    }
+                    
+                    // Bottom padding for tab bar
+                    Rectangle()
+                        .fill(Color.clear)
+                        .frame(height: 120)
                 }
-                
-                // Categories
-                if !viewModel.categories.isEmpty {
-                    CategoryRowView(categories: viewModel.categories)
-                }
-                
-                // Featured Collection
-                if !viewModel.featuredProducts.isEmpty {
-                    FeaturedCollectionView(products: viewModel.featuredProducts)
-                }
-                
-                // Collections
-                if !viewModel.themedCollections.isEmpty {
-                    CollectionsRowView(collections: viewModel.themedCollections)
-                }
-                
-                // Bottom padding for tab bar
-                Rectangle()
-                    .fill(Color.clear)
-                    .frame(height: 100)
             }
-            .padding(.top, 16)
+            .background(
+                LinearGradient(
+                    gradient: Gradient(colors: [
+                        AppConstants.Colors.background,
+                        AppConstants.Colors.background.opacity(0.98)
+                    ]),
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+            )
         }
         .refreshable {
             viewModel.refreshData()
         }
+    }
+    
+    private var sectionDivider: some View {
+        VStack(spacing: 8) {
+            // Main divider line with gradient
+            Rectangle()
+                .fill(
+                    LinearGradient(
+                        gradient: Gradient(colors: [
+                            Color.clear,
+                            AppConstants.Colors.primary.opacity(0.3),
+                            Color.clear
+                        ]),
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                )
+                .frame(height: 1)
+                .frame(maxWidth: 200)
+            
+            // Decorative center dot
+            Circle()
+                .fill(AppConstants.Colors.primary.opacity(0.4))
+                .frame(width: 4, height: 4)
+        }
+        .padding(.horizontal, AppConstants.Layout.horizontalPadding)
+    }
+    
+    private func sectionHeader(title: String, subtitle: String) -> some View {
+        VStack(spacing: 8) {
+            Text(title)
+                .font(.custom(AppConstants.Fonts.inter, size: 22))
+                .fontWeight(.semibold)
+                .foregroundColor(AppConstants.Colors.text)
+            
+            Text(subtitle)
+                .font(.custom(AppConstants.Fonts.inter, size: 14))
+                .foregroundColor(AppConstants.Colors.textSecondary)
+        }
+        .padding(.horizontal, AppConstants.Layout.horizontalPadding)
     }
     
     private var sidebarView: some View {
@@ -172,7 +265,7 @@ struct HomeView: View {
                     Spacer()
                     
                     Button(action: {
-                        withAnimation(.easeInOut(duration: 0.3)) {
+                        withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
                             showingSidebar = false
                         }
                     }) {
@@ -197,14 +290,23 @@ struct HomeView: View {
             }
             .padding(.horizontal, 20)
             .frame(width: 280)
-            .background(AppConstants.Colors.background)
-            .shadow(color: .black.opacity(0.3), radius: 10, x: 5, y: 0)
+            .background(
+                LinearGradient(
+                    gradient: Gradient(colors: [
+                        AppConstants.Colors.background,
+                        AppConstants.Colors.background.opacity(0.95)
+                    ]),
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+            )
+            .shadow(color: .black.opacity(0.15), radius: 20, x: 5, y: 0)
             
             Spacer()
         }
         .background(Color.black.opacity(0.3))
         .onTapGesture {
-            withAnimation(.easeInOut(duration: 0.3)) {
+            withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
                 showingSidebar = false
             }
         }

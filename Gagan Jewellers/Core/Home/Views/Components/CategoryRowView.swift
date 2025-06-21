@@ -8,40 +8,55 @@ struct CategoryRowView: View {
     @State private var isUserInteracting = false
     @State private var restartTimer: Timer?
     
-    private let scrollSpeed: CGFloat = 0.3 // Very slow scrolling speed
+    private let scrollSpeed: CGFloat = 0.5 // Increased from 0.3
     private let restartDelay: TimeInterval = 3.0
     private let itemWidth: CGFloat = 96 // Approximate item width including spacing
     
     var body: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            LazyHStack(spacing: 16) {
-                // Triple the categories for seamless infinite scroll
-                ForEach(tripleCategories.indices, id: \.self) { index in
-                    let category = tripleCategories[index]
-                    CategoryItemView(category: category)
+        ScrollViewReader { proxy in
+            ScrollView(.horizontal, showsIndicators: false) {
+                LazyHStack(spacing: 16) {
+                    // Triple the categories for seamless infinite scroll
+                    ForEach(tripleCategories.indices, id: \.self) { index in
+                        let category = tripleCategories[index]
+                        CategoryItemView(category: category)
+                            .id(index)
+                    }
                 }
+                .padding(.horizontal, AppConstants.Layout.horizontalPadding)
+                .offset(x: scrollOffset)
             }
-            .padding(.horizontal, AppConstants.Layout.horizontalPadding)
-            .offset(x: scrollOffset)
+            .onAppear {
+                startInfiniteScroll()
+            }
+            .onDisappear {
+                stopAllTimers()
+            }
+            .gesture(
+                DragGesture()
+                    .onChanged { value in
+                        handleUserInteraction()
+                        
+                        // Allow user to scroll but prevent opposite direction interference
+                        let translation = value.translation.width
+                        
+                        // Only allow manual scrolling if it's in a reasonable range
+                        if abs(translation) > 5 {
+                            stopInfiniteScroll()
+                        }
+                    }
+                    .onEnded { _ in
+                        // Resume auto scroll after user finishes dragging
+                        scheduleAutoScrollResume()
+                    }
+            )
+            .simultaneousGesture(
+                TapGesture()
+                    .onEnded { _ in
+                        handleUserInteraction()
+                    }
+            )
         }
-        .onAppear {
-            startInfiniteScroll()
-        }
-        .onDisappear {
-            stopAllTimers()
-        }
-        .gesture(
-            DragGesture()
-                .onChanged { _ in
-                    handleUserInteraction()
-                }
-        )
-        .simultaneousGesture(
-            TapGesture()
-                .onEnded { _ in
-                    handleUserInteraction()
-                }
-        )
     }
     
     // Create tripled array for seamless infinite scroll
@@ -79,7 +94,9 @@ struct CategoryRowView: View {
         
         // Cancel any existing restart timer
         restartTimer?.invalidate()
-        
+    }
+    
+    private func scheduleAutoScrollResume() {
         // Start timer to resume infinite scroll after delay
         restartTimer = Timer.scheduledTimer(withTimeInterval: restartDelay, repeats: false) { _ in
             isUserInteracting = false

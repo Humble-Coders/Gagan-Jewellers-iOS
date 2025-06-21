@@ -21,23 +21,10 @@ struct AsyncImageView: View {
             if let placeholder = placeholder {
                 placeholder
             } else {
-                Rectangle()
-                    .fill(Color.gray.opacity(0.3))
-                    .overlay(
-                        VStack(spacing: 8) {
-                            ProgressView()
-                                .scaleEffect(0.8)
-                                .progressViewStyle(CircularProgressViewStyle(tint: AppConstants.Colors.primary))
-                            
-                            Text("Loading...")
-                                .font(.custom(AppConstants.Fonts.inter, size: 12))
-                                .foregroundColor(AppConstants.Colors.textSecondary)
-                        }
-                    )
+                SkeletonShimmerView()
             }
         }
         .onSuccess { image, data, cacheType in
-            // Image loaded successfully
             if cacheType == .none {
                 print("Image downloaded: \(url)")
             } else {
@@ -51,7 +38,7 @@ struct AsyncImageView: View {
     }
 }
 
-// Enhanced version with more control
+// Enhanced version with more control and better gradients
 struct CachedAsyncImage: View {
     let url: String
     let contentMode: ContentMode
@@ -59,6 +46,7 @@ struct CachedAsyncImage: View {
     let height: CGFloat?
     let cornerRadius: CGFloat
     let showLoadingIndicator: Bool
+    let hasGradientOverlay: Bool
     
     @State private var isLoading = true
     @State private var hasError = false
@@ -69,7 +57,8 @@ struct CachedAsyncImage: View {
         width: CGFloat? = nil,
         height: CGFloat? = nil,
         cornerRadius: CGFloat = 0,
-        showLoadingIndicator: Bool = true
+        showLoadingIndicator: Bool = true,
+        hasGradientOverlay: Bool = false
     ) {
         self.url = url
         self.contentMode = contentMode
@@ -77,100 +66,145 @@ struct CachedAsyncImage: View {
         self.height = height
         self.cornerRadius = cornerRadius
         self.showLoadingIndicator = showLoadingIndicator
+        self.hasGradientOverlay = hasGradientOverlay
     }
     
     var body: some View {
-        WebImage(url: URL(string: url)) { image in
-            image
-                .resizable()
-                .aspectRatio(contentMode: contentMode)
-                .onAppear {
-                    isLoading = false
-                    hasError = false
+        ZStack {
+            WebImage(url: URL(string: url)) { image in
+                image
+                    .resizable()
+                    .aspectRatio(contentMode: contentMode)
+                    .onAppear {
+                        isLoading = false
+                        hasError = false
+                    }
+            } placeholder: {
+                placeholderView
+            }
+            .onSuccess { image, data, cacheType in
+                isLoading = false
+                hasError = false
+                
+                switch cacheType {
+                case .none:
+                    print("🌐 Downloaded: \(URL(string: url)?.lastPathComponent ?? "unknown")")
+                case .disk:
+                    print("💾 Disk cache: \(URL(string: url)?.lastPathComponent ?? "unknown")")
+                case .memory:
+                    print("⚡ Memory cache: \(URL(string: url)?.lastPathComponent ?? "unknown")")
+                @unknown default:
+                    print("📱 Cache: \(URL(string: url)?.lastPathComponent ?? "unknown")")
                 }
-        } placeholder: {
-            placeholderView
-        }
-        .onSuccess { image, data, cacheType in
-            isLoading = false
-            hasError = false
-            // Track cache performance
-            switch cacheType {
-            case .none:
-                print("🌐 Downloaded from network: \(URL(string: url)?.lastPathComponent ?? "unknown")")
-            case .disk:
-                print("💾 Loaded from disk cache: \(URL(string: url)?.lastPathComponent ?? "unknown")")
-            case .memory:
-                print("⚡ Loaded from memory cache: \(URL(string: url)?.lastPathComponent ?? "unknown")")
-            @unknown default:
-                print("📱 Loaded from cache: \(URL(string: url)?.lastPathComponent ?? "unknown")")
+            }
+            .onFailure { error in
+                isLoading = false
+                hasError = true
+                print("❌ Failed: \(URL(string: url)?.lastPathComponent ?? "unknown")")
+            }
+            .transition(.opacity.animation(.easeInOut(duration: 0.3)))
+            
+            // Enhanced gradient overlay for better text readability
+            if hasGradientOverlay && !isLoading && !hasError {
+                LinearGradient(
+                    gradient: Gradient(stops: [
+                        .init(color: Color.clear, location: 0.0),
+                        .init(color: Color.clear, location: 0.4),
+                        .init(color: Color.black.opacity(0.1), location: 0.7),
+                        .init(color: Color.black.opacity(0.4), location: 1.0)
+                    ]),
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
             }
         }
-        .onFailure { error in
-            isLoading = false
-            hasError = true
-            print("❌ Failed to load image \(URL(string: url)?.lastPathComponent ?? "unknown"): \(error.localizedDescription)")
-            print("   Full URL: \(url)")
-        }
-        .transition(.opacity.animation(.easeInOut(duration: 0.3)))
         .frame(width: width, height: height)
         .cornerRadius(cornerRadius)
         .clipped()
     }
     
     private var placeholderView: some View {
-        Rectangle()
-            .fill(Color.gray.opacity(0.2))
-            .overlay(
-                Group {
-                    if hasError {
-                        VStack(spacing: 8) {
-                            Image(systemName: "exclamationmark.triangle")
-                                .font(.system(size: 24))
-                                .foregroundColor(.red.opacity(0.7))
-                            
-                            Text("Failed to load")
-                                .font(.custom(AppConstants.Fonts.inter, size: 10))
-                                .foregroundColor(.red.opacity(0.7))
-                                .multilineTextAlignment(.center)
-                            
-                            Button("Retry") {
-                                isLoading = true
-                                hasError = false
-                                // Force reload by creating new WebImage
-                            }
-                            .font(.custom(AppConstants.Fonts.inter, size: 10))
-                            .foregroundColor(AppConstants.Colors.primary)
-                        }
-                    } else if showLoadingIndicator && isLoading {
-                        VStack(spacing: 4) {
-                            ProgressView()
-                                .scaleEffect(0.7)
-                                .progressViewStyle(CircularProgressViewStyle(tint: AppConstants.Colors.primary))
-                            
-                            Text("Loading...")
-                                .font(.custom(AppConstants.Fonts.inter, size: 10))
-                                .foregroundColor(AppConstants.Colors.textSecondary)
-                        }
-                    } else {
-                        VStack(spacing: 4) {
-                            Image(systemName: "photo")
-                                .font(.system(size: 20))
-                                .foregroundColor(AppConstants.Colors.textSecondary.opacity(0.5))
-                            
-                            Text("Image")
-                                .font(.custom(AppConstants.Fonts.inter, size: 10))
-                                .foregroundColor(AppConstants.Colors.textSecondary.opacity(0.5))
-                        }
+        Group {
+            if hasError {
+                VStack(spacing: 8) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.system(size: 24))
+                        .foregroundStyle(
+                            LinearGradient(
+                                gradient: Gradient(colors: [
+                                    .red.opacity(0.7),
+                                    .orange.opacity(0.5)
+                                ]),
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                    
+                    Text("Failed to load")
+                        .font(.custom(AppConstants.Fonts.inter, size: 10))
+                        .foregroundColor(.red.opacity(0.7))
+                        .multilineTextAlignment(.center)
+                    
+                    Button("Retry") {
+                        isLoading = true
+                        hasError = false
                     }
+                    .font(.custom(AppConstants.Fonts.inter, size: 10))
+                    .foregroundStyle(
+                        LinearGradient(
+                            gradient: Gradient(colors: [
+                                AppConstants.Colors.primary,
+                                AppConstants.Colors.primary.opacity(0.8)
+                            ]),
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
                 }
-            )
-            .frame(width: width, height: height)
-            .cornerRadius(cornerRadius)
+                .frame(width: width, height: height)
+                .background(Color.gray.opacity(0.1))
+                .cornerRadius(cornerRadius)
+            } else if showLoadingIndicator && isLoading {
+                SkeletonShimmerView()
+                    .frame(width: width, height: height)
+                    .cornerRadius(cornerRadius)
+            } else {
+                VStack(spacing: 4) {
+                    Image(systemName: "photo")
+                        .font(.system(size: 20))
+                        .foregroundStyle(
+                            LinearGradient(
+                                gradient: Gradient(colors: [
+                                    AppConstants.Colors.textSecondary.opacity(0.5),
+                                    AppConstants.Colors.textSecondary.opacity(0.3)
+                                ]),
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                    
+                    Text("Image")
+                        .font(.custom(AppConstants.Fonts.inter, size: 10))
+                        .foregroundColor(AppConstants.Colors.textSecondary.opacity(0.5))
+                }
+                .frame(width: width, height: height)
+                .background(
+                    LinearGradient(
+                        gradient: Gradient(colors: [
+                            Color.gray.opacity(0.1),
+                            Color.gray.opacity(0.05)
+                        ]),
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
+                .cornerRadius(cornerRadius)
+            }
+        }
     }
 }
 
-// Fallback using native AsyncImage if SDWebImage has issues
+// Fallback using native AsyncImage with enhanced styling
 struct FallbackAsyncImage: View {
     let url: String
     let contentMode: ContentMode
@@ -198,19 +232,7 @@ struct FallbackAsyncImage: View {
                 .resizable()
                 .aspectRatio(contentMode: contentMode)
         } placeholder: {
-            Rectangle()
-                .fill(Color.gray.opacity(0.2))
-                .overlay(
-                    VStack(spacing: 4) {
-                        ProgressView()
-                            .scaleEffect(0.7)
-                            .progressViewStyle(CircularProgressViewStyle(tint: AppConstants.Colors.primary))
-                        
-                        Image(systemName: "photo")
-                            .font(.system(size: 16))
-                            .foregroundColor(AppConstants.Colors.textSecondary.opacity(0.5))
-                    }
-                )
+            SkeletonShimmerView()
         }
         .frame(width: width, height: height)
         .cornerRadius(cornerRadius)
