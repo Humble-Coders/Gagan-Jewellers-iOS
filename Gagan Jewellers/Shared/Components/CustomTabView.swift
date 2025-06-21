@@ -2,27 +2,44 @@ import SwiftUI
 
 struct CustomTabView: View {
     @State private var selectedTab = 0
+    @StateObject private var homeViewModel = HomeViewModel()
     
     var body: some View {
         ZStack(alignment: .bottom) {
-            // Content based on selected tab
-            Group {
-                switch selectedTab {
-                case 0:
-                    HomeView()
-                case 1:
-                    CategoriesView()
-                case 2:
-                    WishlistView()
-                case 3:
-                    ProfileView()
-                default:
-                    HomeView()
-                }
+            // Content based on selected tab with elegant transitions
+            ZStack {
+                // Home Tab
+                HomeView()
+                    .environmentObject(homeViewModel)
+                    .opacity(selectedTab == 0 ? 1 : 0)
+                    .scaleEffect(selectedTab == 0 ? 1 : 0.95)
+                    .animation(.easeInOut(duration: 0.3), value: selectedTab)
+                
+                // Categories Tab
+                CategoriesView(
+                    cachedCategories: homeViewModel.categories,
+                    cachedCollections: homeViewModel.themedCollections
+                )
+                .opacity(selectedTab == 1 ? 1 : 0)
+                .scaleEffect(selectedTab == 1 ? 1 : 0.95)
+                .animation(.easeInOut(duration: 0.3), value: selectedTab)
+                
+                // Wishlist Tab
+                WishlistView()
+                    .opacity(selectedTab == 2 ? 1 : 0)
+                    .scaleEffect(selectedTab == 2 ? 1 : 0.95)
+                    .animation(.easeInOut(duration: 0.3), value: selectedTab)
+                
+                // Profile Tab
+                ProfileView()
+                    .opacity(selectedTab == 3 ? 1 : 0)
+                    .scaleEffect(selectedTab == 3 ? 1 : 0.95)
+                    .animation(.easeInOut(duration: 0.3), value: selectedTab)
             }
             
-            // Custom Tab Bar
+            // Custom Tab Bar with entrance animation
             customTabBar
+                .transition(.move(edge: .bottom).combined(with: .opacity))
         }
         .ignoresSafeArea(.keyboard)
     }
@@ -38,8 +55,8 @@ struct CustomTabView: View {
             
             tabBarItem(
                 title: "Categories",
-                icon: "grid.circle",
-                selectedIcon: "grid.circle.fill",
+                icon: "square.grid.2x2",
+                selectedIcon: "square.grid.2x2.fill",
                 index: 1
             )
             
@@ -57,7 +74,7 @@ struct CustomTabView: View {
                 index: 3
             )
         }
-        .padding(.vertical, 12)
+        .padding(.vertical, 8)
         .padding(.horizontal, 20)
         .background(AppConstants.Colors.background)
         .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: -5)
@@ -65,7 +82,13 @@ struct CustomTabView: View {
     
     private func tabBarItem(title: String, icon: String, selectedIcon: String, index: Int) -> some View {
         Button(action: {
-            selectedTab = index
+            withAnimation(.spring(response: 0.4, dampingFraction: 0.8, blendDuration: 0)) {
+                selectedTab = index
+            }
+            
+            // Add haptic feedback
+            let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+            impactFeedback.impactOccurred()
         }) {
             VStack(spacing: 4) {
                 Image(systemName: selectedTab == index ? selectedIcon : icon)
@@ -83,18 +106,6 @@ struct CustomTabView: View {
 }
 
 // Placeholder views for other tabs
-struct CategoriesView: View {
-    var body: some View {
-        VStack {
-            Text("Categories")
-                .font(.custom(AppConstants.Fonts.inter, size: 24))
-                .fontWeight(.bold)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(AppConstants.Colors.background)
-    }
-}
-
 struct WishlistView: View {
     var body: some View {
         VStack {

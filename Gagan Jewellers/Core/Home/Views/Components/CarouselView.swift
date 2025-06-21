@@ -1,5 +1,6 @@
 import SwiftUI
 import UIKit
+import SDWebImageSwiftUI
 
 struct CarouselView: View {
     let items: [CarouselItem]
@@ -87,14 +88,43 @@ struct CarouselItemView: View {
     var body: some View {
         GeometryReader { geometry in
             ZStack {
-                // Background Image - Edge to edge
-                CachedAsyncImage(
-                    url: item.imageUrl,
-                    contentMode: .fill,
-                    width: geometry.size.width,
-                    height: geometry.size.height
-                )
-                .clipped()
+                // Background Image - Using cleaned URLs
+                WebImage(url: createValidURL(from: item.imageUrl)) { image in
+                    image
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(width: geometry.size.width, height: geometry.size.height)
+                        .clipped()
+                } placeholder: {
+                    Rectangle()
+                        .fill(Color.gray.opacity(0.2))
+                        .overlay(
+                            VStack {
+                                ProgressView()
+                                    .progressViewStyle(CircularProgressViewStyle(tint: AppConstants.Colors.primary))
+                                Text("Loading...")
+                                    .font(.caption)
+                                    .foregroundColor(AppConstants.Colors.textSecondary)
+                            }
+                        )
+                }
+                .onSuccess { image, data, cacheType in
+                    print("✅ SDWebImage carousel loaded: \(item.title)")
+                    print("   Cache type: \(cacheType)")
+                }
+                .onFailure { error in
+                    print("❌ SDWebImage carousel failed: \(item.title)")
+                    print("   URL: \(item.imageUrl)")
+                    print("   Error: \(error.localizedDescription)")
+                    
+                    // Test the cleaned URL
+                    if let cleanedUrl = createValidURL(from: item.imageUrl) {
+                        testImageURL(cleanedUrl.absoluteString)
+                    }
+                }
+                .onAppear {
+                    print("⏳ SDWebImage loading carousel: \(item.title)")
+                }
                 
                 // Gradient Overlay
                 LinearGradient(
@@ -173,6 +203,83 @@ struct CarouselItemView: View {
         // Add haptic feedback
         let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
         impactFeedback.impactOccurred()
+    }
+    
+    private func createValidURL(from urlString: String) -> URL? {
+        // Clean the URL string
+        let cleanedString = urlString
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .replacingOccurrences(of: "%0A", with: "")
+            .replacingOccurrences(of: "\n", with: "")
+            .replacingOccurrences(of: "\r", with: "")
+        
+        print("🧹 Original URL: \(urlString)")
+        print("🧹 Cleaned URL: \(cleanedString)")
+        
+        // Validate it's a proper Firebase Storage URL
+        if cleanedString.contains("firebasestorage.googleapis.com") &&
+           cleanedString.contains("?alt=media") {
+            return URL(string: cleanedString)
+        } else {
+            print("❌ Invalid Firebase Storage URL format")
+            return nil
+        }
+    }
+    
+    private func testImageURL(_ urlString: String) {
+        guard let url = URL(string: urlString) else {
+            print("❌ Invalid URL format: \(urlString)")
+            return
+        }
+        
+        print("🔍 Testing URL accessibility: \(url)")
+        
+        // Test the URL accessibility with a full GET request
+        URLSession.shared.dataTask(with: url) { data, response, error in
+            DispatchQueue.main.async {
+                if let error = error {
+                    print("❌ URL test failed: \(error.localizedDescription)")
+                } else if let httpResponse = response as? HTTPURLResponse {
+                    print("🔍 URL status code: \(httpResponse.statusCode)")
+                    print("🔍 Response headers: \(httpResponse.allHeaderFields)")
+                    
+                    if httpResponse.statusCode == 200 {
+                        if let data = data {
+                            print("✅ URL is accessible, downloaded \(data.count) bytes")
+                            
+                            // Try to create UIImage from data
+                            if let _ = UIImage(data: data) {
+                                print("✅ Data is valid image format")
+                            } else {
+                                print("❌ Data is not a valid image format")
+                            }
+                        }
+                    } else {
+                        print("❌ URL returned error status: \(httpResponse.statusCode)")
+                    }
+                } else {
+                    print("❌ No response received")
+                }
+            }
+        }.resume()
+        
+        // Also test with a different approach - URLRequest with custom headers
+        var request = URLRequest(url: url)
+        request.setValue("*/*", forHTTPHeaderField: "Accept")
+        request.setValue("Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15", forHTTPHeaderField: "User-Agent")
+        
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            DispatchQueue.main.async {
+                if let error = error {
+                    print("❌ Custom request failed: \(error.localizedDescription)")
+                } else if let httpResponse = response as? HTTPURLResponse {
+                    print("🔍 Custom request status: \(httpResponse.statusCode)")
+                    if httpResponse.statusCode == 200 && data != nil {
+                        print("✅ Custom request successful - AsyncImage might have a different issue")
+                    }
+                }
+            }
+        }.resume()
     }
 }
 

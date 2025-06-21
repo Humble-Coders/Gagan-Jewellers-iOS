@@ -15,6 +15,13 @@ class FirebaseService: ObservableObject {
             var data = document.data()
             data["id"] = document.documentID
             
+            // Clean up image URL by removing any extra characters
+            if let imageUrl = data["imageUrl"] as? String {
+                let cleanedUrl = imageUrl.trimmingCharacters(in: .whitespacesAndNewlines)
+                data["imageUrl"] = cleanedUrl
+                print("🧹 Cleaned carousel URL: \(cleanedUrl)")
+            }
+            
             do {
                 let jsonData = try JSONSerialization.data(withJSONObject: data)
                 return try JSONDecoder().decode(CarouselItem.self, from: jsonData)
@@ -238,6 +245,14 @@ class FirebaseService: ObservableObject {
         }
     }
     
+    // MARK: - Debug: List Storage Contents
+    func debugStorageContents() {
+        print("🔍 Checking Firebase Storage contents...")
+        // Note: This would require Firebase Storage SDK
+        // For now, manually check Firebase Console → Storage
+        // Look for folders: carousel/, products/, categories/, collections/
+    }
+    
     // MARK: - Search Products
     func searchProducts(query: String) async throws -> [Product] {
         let snapshot = try await db.collection(AppConstants.Collections.products)
@@ -267,7 +282,7 @@ class FirebaseService: ObservableObject {
         return allProducts.filter { product in
             product.name.lowercased().contains(lowercaseQuery) ||
             product.description.lowercased().contains(lowercaseQuery) ||
-            ((product.materialType?.lowercased().contains(lowercaseQuery)) != nil)
+            (product.materialType?.lowercased().contains(lowercaseQuery) ?? false)
         }
     }
 }

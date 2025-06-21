@@ -39,6 +39,17 @@ class HomeViewModel: ObservableObject {
                 self.themedCollections = collections
                 self.isLoading = false
                 
+                // Debug: Print URLs being loaded
+                print("🖼️ Carousel URLs:")
+                carousel.forEach { item in
+                    print("   \(item.title): \(item.imageUrl)")
+                }
+                
+                print("🖼️ Collections URLs:")
+                collections.forEach { collection in
+                    print("   \(collection.name): \(collection.imageUrl)")
+                }
+                
                 // Preload important images for better performance
                 await preloadCriticalImages(
                     carousel: carousel,

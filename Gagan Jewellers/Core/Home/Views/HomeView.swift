@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct HomeView: View {
-    @StateObject private var viewModel = HomeViewModel()
+    @EnvironmentObject private var viewModel: HomeViewModel
     @State private var isSearching = false
     @State private var searchText = ""
     @State private var showingSidebar = false
@@ -70,6 +70,7 @@ struct HomeView: View {
                     .font(.system(size: 18))
                     .foregroundColor(AppConstants.Colors.text)
             }
+            .frame(width: 44, height: 44) // Fixed frame for consistent spacing
             
             Spacer()
             
@@ -99,6 +100,7 @@ struct HomeView: View {
                         .foregroundColor(AppConstants.Colors.text)
                 }
             }
+            .frame(width: 88, height: 44) // Fixed frame to balance the hamburger menu
         }
     }
     
