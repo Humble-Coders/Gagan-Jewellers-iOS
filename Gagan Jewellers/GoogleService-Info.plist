@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CLIENT_ID</key>
+	<string>836804403458-gbld8teerkv57473omav6l3pd0mirici.apps.googleusercontent.com</string>
+	<key>REVERSED_CLIENT_ID</key>
+	<string>com.googleusercontent.apps.836804403458-gbld8teerkv57473omav6l3pd0mirici</string>
+	<key>ANDROID_CLIENT_ID</key>
+	<string>836804403458-uckl2pkcsoiaipfhsclckmh6b3ie7pdp.apps.googleusercontent.com</string>
+	<key>API_KEY</key>
+	<string>AIzaSyDl27vkbENz-L-VnyXBqAZ1zGZNH90-f2k</string>
+	<key>GCM_SENDER_ID</key>
+	<string>836804403458</string>
+	<key>PLIST_VERSION</key>
+	<string>1</string>
+	<key>BUNDLE_ID</key>
+	<string>HumbleCoders.in.Gagan-Jewellers</string>
+	<key>PROJECT_ID</key>
+	<string>jewellery-app-f6302</string>
+	<key>STORAGE_BUCKET</key>
+	<string>jewellery-app-f6302.firebasestorage.app</string>
+	<key>IS_ADS_ENABLED</key>
+	<false></false>
+	<key>IS_ANALYTICS_ENABLED</key>
+	<false></false>
+	<key>IS_APPINVITE_ENABLED</key>
+	<true></true>
+	<key>IS_GCM_ENABLED</key>
+	<true></true>
+	<key>IS_SIGNIN_ENABLED</key>
+	<true></true>
+	<key>GOOGLE_APP_ID</key>
+	<string>1:836804403458:ios:ada35c693f3d08a5ba621b</string>
+</dict>
+</plist>
