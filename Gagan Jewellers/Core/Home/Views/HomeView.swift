@@ -50,7 +50,7 @@ struct HomeView: View {
             }
         }
         .padding(.horizontal, AppConstants.Layout.horizontalPadding)
-        .padding(.vertical, 12)
+        .padding(.vertical, 8)
         .background(
             LinearGradient(
                 gradient: Gradient(colors: [
@@ -72,15 +72,37 @@ struct HomeView: View {
                 }
             }) {
                 Image(systemName: "line.horizontal.3")
-                    .font(.system(size: 18))
+                    .font(.system(size: 16))
                     .foregroundColor(AppConstants.Colors.text)
             }
-            .frame(width: 44, height: 44)
+            .frame(width: 40, height: 40)
             
             Spacer()
             
+            HStack(spacing: 16) {
+                Button(action: {
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        isSearching = true
+                    }
+                }) {
+                    Image(systemName: "magnifyingglass")
+                        .font(.system(size: 16))
+                        .foregroundColor(AppConstants.Colors.text)
+                }
+                
+                Button(action: {
+                    // Handle favorites
+                }) {
+                    Image(systemName: "heart")
+                        .font(.system(size: 16))
+                        .foregroundColor(AppConstants.Colors.text)
+                }
+            }
+            .frame(width: 80, height: 40)
+        }
+        .overlay(
             Text("Gagan Jewellers")
-                .font(.custom(AppConstants.Fonts.inter, size: 20))
+                .font(.custom(AppConstants.Fonts.inter, size: 18))
                 .fontWeight(.semibold)
                 .foregroundStyle(
                     LinearGradient(
@@ -92,30 +114,7 @@ struct HomeView: View {
                         endPoint: .trailing
                     )
                 )
-            
-            Spacer()
-            
-            HStack(spacing: 16) {
-                Button(action: {
-                    withAnimation(.easeInOut(duration: 0.3)) {
-                        isSearching = true
-                    }
-                }) {
-                    Image(systemName: "magnifyingglass")
-                        .font(.system(size: 18))
-                        .foregroundColor(AppConstants.Colors.text)
-                }
-                
-                Button(action: {
-                    // Handle favorites
-                }) {
-                    Image(systemName: "heart")
-                        .font(.system(size: 18))
-                        .foregroundColor(AppConstants.Colors.text)
-                }
-            }
-            .frame(width: 88, height: 44)
-        }
+        )
     }
     
     private var searchBar: some View {
@@ -150,51 +149,50 @@ struct HomeView: View {
                             )
                             
                             // Elegant section divider
-                            sectionDivider
+                            
                         }
                     }
                     
                     // Categories Section
                     if !viewModel.categories.isEmpty {
-                        VStack(spacing: 24) {
-                            sectionHeader(title: "Explore by Category", subtitle: "Discover our finest collections")
-                            
+                        VStack(spacing: 12) {
+                            sectionDivider
+                            sectionHeader(title: "Discover our finest collections")
+                            sectionDivider
                             CategoryRowView(categories: viewModel.categories)
                         }
-                        .padding(.vertical, 24)
+                        .padding(.vertical, 12)
                         
                         sectionDivider
                     }
                     
                     // Featured Collection Section
                     if !viewModel.featuredProducts.isEmpty {
-                        VStack(spacing: 24) {
-                            sectionHeader(title: "Featured Collection", subtitle: "Handpicked for you")
-                            
-                            // Allow internal animations but disable layout animations
-                            EnhancedFeaturedCollectionView(products: viewModel.featuredProducts)
-                                .animation(.none, value: viewModel.featuredProducts.count) // Only disable layout changes
+                        VStack(spacing: 12) {
+                            sectionHeader(title: "Handpicked for you")
+                            sectionDivider
+                            // Fresh implementation without LazyVGrid
+                            FreshFeaturedCollectionView(products: viewModel.featuredProducts)
                         }
-                        .animation(.none, value: viewModel.featuredProducts.count) // Disable VStack layout animations
-                        .padding(.vertical, 24)
+                        .padding(.vertical, 12)
                         
                         sectionDivider
                     }
                     
                     // Collections Section
                     if !viewModel.themedCollections.isEmpty {
-                        VStack(spacing: 24) {
-                            sectionHeader(title: "Our Collections", subtitle: "Curated themes and styles")
-                            
+                        VStack(spacing: 12) {
+                            sectionHeader(title: "Curated themes and styles")
+                            sectionDivider
                             CollectionsRowView(collections: viewModel.themedCollections)
                         }
-                        .padding(.vertical, 24)
+                        .padding(.vertical, 12)
                     }
                     
                     // Bottom padding for tab bar
                     Rectangle()
                         .fill(Color.clear)
-                        .frame(height: 120)
+                        .frame(height: 80)
                 }
             }
             .background(
@@ -214,43 +212,30 @@ struct HomeView: View {
     }
     
     private var sectionDivider: some View {
-        VStack(spacing: 8) {
-            // Main divider line with gradient
-            Rectangle()
-                .fill(
-                    LinearGradient(
-                        gradient: Gradient(colors: [
-                            Color.clear,
-                            AppConstants.Colors.primary.opacity(0.3),
-                            Color.clear
-                        ]),
-                        startPoint: .leading,
-                        endPoint: .trailing
-                    )
+        // Simple divider line without dot
+        Rectangle()
+            .fill(
+                LinearGradient(
+                    gradient: Gradient(colors: [
+                        Color.clear,
+                        AppConstants.Colors.primary.opacity(0.3),
+                        Color.clear
+                    ]),
+                    startPoint: .leading,
+                    endPoint: .trailing
                 )
-                .frame(height: 1)
-                .frame(maxWidth: 200)
-            
-            // Decorative center dot
-            Circle()
-                .fill(AppConstants.Colors.primary.opacity(0.4))
-                .frame(width: 4, height: 4)
-        }
-        .padding(.horizontal, AppConstants.Layout.horizontalPadding)
+            )
+            .frame(height: 1)
+            .frame(maxWidth: 200)
+            .padding(.horizontal, AppConstants.Layout.horizontalPadding)
+            .padding(.vertical, 2)
     }
     
-    private func sectionHeader(title: String, subtitle: String) -> some View {
-        VStack(spacing: 8) {
-            Text(title)
-                .font(.custom(AppConstants.Fonts.inter, size: 22))
-                .fontWeight(.semibold)
-                .foregroundColor(AppConstants.Colors.text)
-            
-            Text(subtitle)
-                .font(.custom(AppConstants.Fonts.inter, size: 14))
-                .foregroundColor(AppConstants.Colors.textSecondary)
-        }
-        .padding(.horizontal, AppConstants.Layout.horizontalPadding)
+    private func sectionHeader(title: String) -> some View {
+        Text(title)
+            .font(.custom(AppConstants.Fonts.inter, size: 14))
+            .foregroundColor(AppConstants.Colors.textSecondary)
+            .padding(.horizontal, AppConstants.Layout.horizontalPadding)
     }
     
     private var sidebarView: some View {

@@ -5,21 +5,21 @@ struct CollectionsRowView: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            HStack {
-                Text("Collections")
-                    .font(.custom(AppConstants.Fonts.inter, size: 18))
-                    .fontWeight(.semibold)
-                    .foregroundColor(AppConstants.Colors.text)
-                
-                Spacer()
-                
-                Button("View All") {
-                    // Handle view all collections
-                }
-                .font(.custom(AppConstants.Fonts.inter, size: 14))
-                .foregroundColor(AppConstants.Colors.primary)
-            }
-            .padding(.horizontal, AppConstants.Layout.horizontalPadding)
+//            HStack {
+//                Text("Collections")
+//                    .font(.custom(AppConstants.Fonts.inter, size: 18))
+//                    .fontWeight(.semibold)
+//                    .foregroundColor(AppConstants.Colors.text)
+//                
+//                Spacer()
+//                
+//                Button("View All") {
+//                    // Handle view all collections
+//                }
+//                .font(.custom(AppConstants.Fonts.inter, size: 14))
+//                .foregroundColor(AppConstants.Colors.primary)
+//            }
+//            .padding(.horizontal, AppConstants.Layout.horizontalPadding)
             
             ScrollView(.horizontal, showsIndicators: false) {
                 LazyHStack(spacing: 12) {

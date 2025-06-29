@@ -22,7 +22,7 @@ struct EnhancedCarouselView: View {
                 }
             }
             .tabViewStyle(PageTabViewStyle(indexDisplayMode: .always))
-            .frame(height: 280) // Increased height for hero prominence
+            .frame(height: 200) // Further reduced from 240 to 200
             .background(
                 LinearGradient(
                     gradient: Gradient(colors: [
@@ -37,7 +37,7 @@ struct EnhancedCarouselView: View {
             .shadow(color: .black.opacity(0.15), radius: 10, x: 0, y: 5)
             .padding(.horizontal, AppConstants.Layout.horizontalPadding)
         }
-        .frame(height: 280)
+        .frame(height: 200)
         .onAppear {
             setupPageControl()
             startAutoScroll()
@@ -108,7 +108,7 @@ struct EnhancedCarouselItemView: View {
                 image
                     .resizable()
                     .aspectRatio(contentMode: .fill)
-                    .frame(width: geometry.size.width, height: 280)
+                    .frame(width: geometry.size.width, height: 200)
                     .offset(y: parallaxOffset * 0.3) // Parallax effect
                     .clipped()
             } placeholder: {
@@ -139,17 +139,17 @@ struct EnhancedCarouselItemView: View {
                 Spacer()
                 
                 HStack {
-                    VStack(alignment: .leading, spacing: 12) {
+                    VStack(alignment: .leading, spacing: 8) {
                         // Category/Title
                         Text(item.title)
-                            .font(.custom(AppConstants.Fonts.inter, size: 16))
+                            .font(.custom(AppConstants.Fonts.inter, size: 12))
                             .fontWeight(.medium)
                             .foregroundColor(.white.opacity(0.9))
                             .shadow(color: .black.opacity(0.5), radius: 2, x: 1, y: 1)
                         
                         // Main Subtitle with gradient text
                         Text(item.subtitle)
-                            .font(.custom(AppConstants.Fonts.inter, size: 28))
+                            .font(.custom(AppConstants.Fonts.inter, size: 20))
                             .fontWeight(.bold)
                             .foregroundStyle(
                                 LinearGradient(
@@ -168,18 +168,18 @@ struct EnhancedCarouselItemView: View {
                         Button(action: {
                             handleCarouselAction(item: item)
                         }) {
-                            HStack(spacing: 10) {
+                            HStack(spacing: 8) {
                                 Text(item.buttonText)
-                                    .font(.custom(AppConstants.Fonts.inter, size: 15))
+                                    .font(.custom(AppConstants.Fonts.inter, size: 13))
                                     .fontWeight(.semibold)
                                     .foregroundColor(.black)
                                 
                                 Image(systemName: "arrow.right")
-                                    .font(.system(size: 13, weight: .semibold))
+                                    .font(.system(size: 11, weight: .semibold))
                                     .foregroundColor(.black)
                             }
-                            .padding(.horizontal, 24)
-                            .padding(.vertical, 12)
+                            .padding(.horizontal, 20)
+                            .padding(.vertical, 10)
                             .background(
                                 LinearGradient(
                                     gradient: Gradient(colors: [
@@ -208,16 +208,16 @@ struct EnhancedCarouselItemView: View {
                             )
                         }
                         .scaleEffect(1.0)
-                        .padding(.top, 8)
+                        .padding(.top, 6)
                     }
                     
                     Spacer()
                 }
-                .padding(.horizontal, 24)
-                .padding(.bottom, 32)
+                .padding(.horizontal, 28)
+                .padding(.bottom, 24)
             }
         }
-        .frame(height: 280)
+        .frame(height: 200)
         .cornerRadius(16)
         .clipped()
     }
