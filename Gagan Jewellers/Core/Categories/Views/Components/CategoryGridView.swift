@@ -20,6 +20,7 @@ struct CategoryGridView: View {
 
 struct CategoryCardView: View {
     let category: Category
+    @State private var showingCategoryProducts = false
     
     var body: some View {
         Button(action: {
@@ -59,11 +60,14 @@ struct CategoryCardView: View {
             }
         }
         .buttonStyle(CategoryButtonStyle())
+        .fullScreenCover(isPresented: $showingCategoryProducts) {
+            CategoryProductsView(category: category)
+        }
     }
     
     private func handleCategoryTap() {
         print("Category tapped: \(category.name)")
-        // TODO: Navigate to category products
+        showingCategoryProducts = true
         
         // Add haptic feedback
         let impactFeedback = UIImpactFeedbackGenerator(style: .medium)

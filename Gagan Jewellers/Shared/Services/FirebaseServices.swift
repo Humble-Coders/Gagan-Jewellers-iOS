@@ -158,27 +158,104 @@ class FirebaseService: ObservableObject {
         }
     }
     
-    // MARK: - Products by Category
+    // Add these methods to your existing FirebaseService class in FirebaseServices.swift
+
+    // MARK: - Category Products
     func fetchProductsByCategory(categoryId: String) async throws -> [Product] {
-        let snapshot = try await db.collection(AppConstants.Collections.products)
-            .whereField("category_id", isEqualTo: categoryId)
-            .whereField("available", isEqualTo: true)
+        // First get the product IDs from category_products collection
+        let categoryProductsDoc = try await db.collection("category_products")
+            .document(categoryId)
+            .getDocument()
+        
+        guard categoryProductsDoc.exists,
+              let categoryData = categoryProductsDoc.data(),
+              let productIds = categoryData["product_ids"] as? [String],
+              !productIds.isEmpty else {
+            print("❌ No product IDs found for category: \(categoryId)")
+            return []
+        }
+        
+        print("🔍 Found \(productIds.count) product IDs for category \(categoryId)")
+        
+        // Fetch products with matching IDs (batch processing for Firestore 'in' limit)
+        let batchSize = 10
+        var allProducts: [Product] = []
+        
+        for i in stride(from: 0, to: productIds.count, by: batchSize) {
+            let endIndex = min(i + batchSize, productIds.count)
+            let batch = Array(productIds[i..<endIndex])
+            
+            let snapshot = try await db.collection(AppConstants.Collections.products)
+                .whereField(FieldPath.documentID(), in: batch)
+                .getDocuments()
+            
+            let batchProducts = snapshot.documents.compactMap { document -> Product? in
+                var data = document.data()
+                data["id"] = document.documentID
+                
+                // Convert Firestore Timestamp to Double for Date conversion
+                if let timestamp = data["created_at"] as? Timestamp {
+                    data["created_at"] = timestamp.seconds
+                }
+                
+                do {
+                    let jsonData = try JSONSerialization.data(withJSONObject: data)
+                    let product = try JSONDecoder().decode(Product.self, from: jsonData)
+                    return product
+                } catch {
+                    print("❌ Error decoding product \(document.documentID): \(error)")
+                    return nil
+                }
+            }
+            
+            allProducts.append(contentsOf: batchProducts)
+        }
+        
+        // Sort products to match the order in product_ids array
+        let sortedProducts = productIds.compactMap { productId in
+            allProducts.first { $0.id == productId }
+        }
+        
+        print("✅ Successfully fetched \(sortedProducts.count) products for category")
+        return sortedProducts
+    }
+
+    // MARK: - Materials
+    func fetchMaterials() async throws -> [Material] {
+        let snapshot = try await db.collection(AppConstants.Collections.materials)
             .getDocuments()
+        
+        print("🔍 Found \(snapshot.documents.count) material documents")
         
         return snapshot.documents.compactMap { document in
             var data = document.data()
             data["id"] = document.documentID
             
-            // Convert Firestore Timestamp to Double for Date conversion
-            if let timestamp = data["created_at"] as? Timestamp {
-                data["created_at"] = timestamp.seconds
-            }
+            // Debug: Print material data structure
+            print("📋 Material \(document.documentID): \(data)")
             
             do {
                 let jsonData = try JSONSerialization.data(withJSONObject: data)
-                return try JSONDecoder().decode(Product.self, from: jsonData)
+                let material = try JSONDecoder().decode(Material.self, from: jsonData)
+                print("✅ Successfully decoded material: \(material.name) with types: \(material.types)")
+                return material
             } catch {
-                print("Error decoding product: \(error)")
+                print("❌ Error decoding material \(document.documentID): \(error)")
+                
+                // Try to provide more helpful error information
+                if let decodingError = error as? DecodingError {
+                    switch decodingError {
+                    case .keyNotFound(let key, let context):
+                        print("   Missing required field: \(key.stringValue)")
+                        print("   Available fields: \(data.keys.sorted())")
+                    case .typeMismatch(let type, let context):
+                        print("   Type mismatch for \(context.codingPath): expected \(type)")
+                    case .valueNotFound(let type, let context):
+                        print("   Value not found for \(context.codingPath): expected \(type)")
+                    default:
+                        print("   Decoding error: \(decodingError)")
+                    }
+                }
                 return nil
             }
         }

@@ -53,6 +53,7 @@ struct Product: Identifiable, Codable {
     let gender: String?
     let available: Bool?
     let featured: Bool?
+    let weight: String? // Add weight field
     let createdAt: Date?
     
     enum CodingKeys: String, CodingKey {
@@ -67,6 +68,7 @@ struct Product: Identifiable, Codable {
         case gender
         case available
         case featured
+        case weight // Add this
         case createdAt = "created_at"
     }
     
@@ -87,6 +89,7 @@ struct Product: Identifiable, Codable {
         gender = try? container.decode(String.self, forKey: .gender)
         available = try? container.decode(Bool.self, forKey: .available)
         featured = try? container.decode(Bool.self, forKey: .featured)
+        weight = try? container.decode(String.self, forKey: .weight) // Add this
         
         // Handle timestamp conversion
         if let timestamp = try? container.decode(Double.self, forKey: .createdAt) {
@@ -110,6 +113,7 @@ struct Product: Identifiable, Codable {
         try container.encodeIfPresent(gender, forKey: .gender)
         try container.encodeIfPresent(available, forKey: .available)
         try container.encodeIfPresent(featured, forKey: .featured)
+        try container.encodeIfPresent(weight, forKey: .weight) // Add this
         
         if let createdAt = createdAt {
             try container.encode(createdAt.timeIntervalSince1970, forKey: .createdAt)
@@ -142,9 +146,10 @@ struct ThemedCollection: Identifiable, Codable {
 struct Material: Identifiable, Codable {
     let id: String
     let name: String
-    let type: String
+    let type: String?
     let description: String?
     let purity: String?
+    let types: [String] // Array of material types
     
     enum CodingKeys: String, CodingKey {
         case id
@@ -152,5 +157,44 @@ struct Material: Identifiable, Codable {
         case type
         case description
         case purity
+        case types
+    }
+    
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        
+        // Required fields
+        id = try container.decode(String.self, forKey: .id)
+        name = try container.decode(String.self, forKey: .name)
+        
+        // Optional fields
+        type = try? container.decode(String.self, forKey: .type)
+        description = try? container.decode(String.self, forKey: .description)
+        purity = try? container.decode(String.self, forKey: .purity)
+        
+        // Types array - handle different possible field names or structures
+        if let typesArray = try? container.decode([String].self, forKey: .types) {
+            types = typesArray
+        } else {
+            // Fallback: try to decode as single type and convert to array
+            if let singleType = try? container.decode(String.self, forKey: .type) {
+                types = [singleType]
+            } else {
+                types = []
+            }
+        }
+        
+        print("📋 Decoded Material: \(name) with types: \(types)")
+    }
+    
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        
+        try container.encode(id, forKey: .id)
+        try container.encode(name, forKey: .name)
+        try container.encodeIfPresent(type, forKey: .type)
+        try container.encodeIfPresent(description, forKey: .description)
+        try container.encodeIfPresent(purity, forKey: .purity)
+        try container.encode(types, forKey: .types)
     }
 }
